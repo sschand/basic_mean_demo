@@ -1,0 +1,95 @@
+<html ng-app="friends_app">
+<head>
+    <title>Full Mean - Friends app Demo</title>
+    <!-- require angular -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.9/angular.min.js"></script>
+    <link rel="stylesheet" href="/partials/skeleton.css">
+    <link rel="stylesheet" href="/partials/style.css">
+    <script type="text/javascript">
+        var friends_app = angular.module('friends_app', []);
+
+        // create the FriendFactory
+        // passing $http in function call below - as dependency injection - gives us access to http
+        friends_app.factory('FriendFactory', function($http, $location){
+            var factory = {};
+            var friends = [];
+
+            // Restful syntax: index = get all that object
+            factory.index = function(callback) {
+                // make http get request to backend
+                $http.get('/friends').success(function(output) {
+                    friends = output;
+
+                    // run callback when successful as it retrieves teh data
+                    callback(friends);
+                })
+                // return friends;
+            }
+            // Restful syntax: create = add one of that object
+            factory.create = function(info, callback) {
+                // friends.push({name: info.name, age: info.age});
+                //make http post to backend which will add the new friend info
+                $http.post('/friends', info).success(function(output) {
+                    callback(friends);
+                });
+            }
+
+            factory.delete = function(friend, callback) {
+
+                $http.delete('/delete/'+friend._id).success(function(output) {
+                    callback(friends);
+                });
+            }
+
+            return factory;
+        });
+
+        // Controller code!
+        friends_app.controller('FriendsController', function($scope, FriendFactory) {
+            // This line goes at the top of the controller callback because the minute the controller gets called upon we want to create the $scope.friends array
+
+            // replace "$scope.friends = FriendFactory.index()" with the following code
+            //the line below says: set our $scope.friends variable to whatever is returned from FriendFactory.index.  In this case, that will be all the friends.
+            FriendFactory.index(function(data) {
+                $scope.friends = data;
+            });
+
+            // ADD NEW FRIEND
+            $scope.addfriend = function() {
+                // Make call to factory, pass it the new data to be added, and refresh with new list?
+                FriendFactory.create($scope.new_friend, function() {
+                    $scope.new_friend = {}; //clear use inputs
+                    FriendFactory.index(function(data) {
+                        $scope.friends = data;
+                    });
+                })
+            }
+
+            // REMOVE FRIEND
+            $scope.removeFriend = function(friend){
+                FriendFactory.delete(friend, function() {
+                    // After delete is done, just update the view by refreshing the scope data
+                    FriendFactory.index(function(data) {
+                        $scope.friends = data;
+                    });
+                });
+            }
+        });
+    </script>
+</head>
+<body ng-controller="FriendsController">
+    <div class="container">
+        <h1>Friends</h1>
+        <input type="text" ng-model="filter_name" placeholder="filter">
+        {{ filter_name }}
+        <ul ng-repeat="friend in friends | filter: filter_name">
+            <li>{{friend.name}}, {{ friend.age }} <input type="button" name="name" class="button button-primary" value="Delete" ng-click="removeFriend(friend)"></li>
+        </ul>
+
+        <h1>Add a Friend</h1>
+        <input type="text" name="name" ng-model="new_friend.name" placeholder="name">
+        <input type="text" name="age" ng-model="new_friend.age" placeholder="age">
+        <input type="submit" ng-click="addfriend()">
+    </div>
+</body>
+</html>
